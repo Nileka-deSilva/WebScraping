@@ -83,8 +83,6 @@ class OTAWebScraper():
 
             ''' read the list of urls from the file '''
             with open(self.path+"/"+self.file, newline='') as f:
-#                reader = csv.reader(f)
-#                url_list = list(reader)
                 property_data = json.load(f)
 
         except Exception as err:
@@ -92,7 +90,6 @@ class OTAWebScraper():
             print("[Error]"+_s_fn_id, err)
             print(traceback.format_exc())
 
-#        return url_list
         return property_data
 
     ''' Function
@@ -288,6 +285,9 @@ class OTAWebScraper():
 #                                        scrape_url_list.append(_parameterized_url)
                                         _scrape_url_dict = {}     # init otherwise will overwrite the list
                                         _scrape_url_dict['ota']=ota['ota']
+                                        _scrape_url_dict['location']=location
+                                        _scrape_url_dict['checkin']=_inert_param_dict['checkin']
+                                        _scrape_url_dict['page_offset']=page_offset
                                         _scrape_url_dict['url']=_parameterized_url
                                         _ota_parameterized_url_list.append(_scrape_url_dict)
                                         page_offset += self.page_offset
@@ -319,13 +319,86 @@ class OTAWebScraper():
 
             author: nuwan.waidyanatha@rezgateway.com
     '''
-    def scrape_data_to_csv(self,url,fileName, path):
+    def scrape_data_to_csv(self,url,_scrape_tags_df,fileName, path):
 
         from bs4 import BeautifulSoup # Import for Beautiful Soup
         import requests # Import for requests
         import lxml     # Import for lxml parser
         import csv
         from csv import writer
+
+        try:
+            if _scrape_tags_df.shape[0] <= 0:
+                raise ValueError("Invalid scrape tags no data scraped")
+            if not fileName:
+                raise ValueError("Invalid file name no data scraped")
+            if not path:
+                raise ValueError("Invalid path name no data scraped")
+
+            ''' define generic header '''
+            headers = {'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.82 Safari/537.36'}
+            response = requests.get(url, headers=headers)
+            # Make it a soup
+            soup = BeautifulSoup(response.text,"lxml")
+#            soup = BeautifulSoup(response.text,"html.parser")
+
+            ''' extract the list of values from content block '''
+            _cont_block = (_scrape_tags_df.loc[_scrape_tags_df['variable']=='content_block']).head(1)
+            _l_scrape_text = soup.select(_cont_block.tag.item())
+
+            if len(_l_scrape_text) <= 0:
+                raise ValueError("no content block (area) for %s" %(_cont_block))
+
+            ''' get the attribute list '''
+            _l_col_names = list(_scrape_tags_df.variable)
+            _l_col_names.remove('content_block')
+
+            ''' init dataframe to store the scraped categorical text '''
+            _prop_data_df = pd.DataFrame()
+
+            ''' loop through the list to retrieve values from tags '''
+            for row in _l_scrape_text:
+                _scraped_data_dict = {}
+                for colName in _l_col_names:
+                    _tag = _scrape_tags_df.loc[_scrape_tags_df.variable==colName, 'tag'].item()
+                    _code = _scrape_tags_df.loc[_scrape_tags_df.variable==colName, 'code'].item()
+
+                    try:
+                        _scraped_data_dict[colName] = row.find(_tag, class_ = _code).text
+
+                    except Exception as err:
+                        pass
+                        
+                if _scraped_data_dict:
+                    _prop_data_df = pd.concat([_prop_data_df, pd.DataFrame(_scraped_data_dict, index=[0])])
+
+        except Exception as err:
+            _s_fn_id = "Class <WebScraper> Function <scrape_data_to_csv>"
+            print("[Error]"+_s_fn_id, err)
+            print(traceback.format_exc())
+
+        return _prop_data_df
+
+    ''' Function
+            name: scrape_ota_to_csv
+            parameters:
+                url - string comprising the url with place holders
+                **kwargs - contain the plance holder key value pairs
+
+            procedure: build the url by inserting the values from the **kwargs dict
+            return string (url)
+
+            author: nileka.desilva@rezgateway.com
+    '''
+    def _scrape_bookings_to_csv(self,url,checkin_date,fileName, path):
+
+        from bs4 import BeautifulSoup # Import for Beautiful Soup
+        import requests # Import for requests
+        import lxml     # Import for lxml parser
+        import csv
+        from csv import writer
+
+        saveTo = None
 
         try:
             headers = {'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/99.0.4844.82 Safari/537.36'}
@@ -338,17 +411,34 @@ class OTAWebScraper():
 
             saveTo = path+"/"+fileName
             with open(saveTo, 'a', encoding='utf8', newline='') as f:
-                fieldnames = ['Date', 'Hotel', 'Room Type', 'Rate']
+                fieldnames = ['Checkin Date',      # presumed checkin date
+                              'Property Name',     # hotel name
+                              'Room Type',         # room type: queen bed, double
+                              'Room Rate',         # room price for one night
+                              'Review Score',      # rating based on review
+                              'Property Location', # city and relative locality
+                              'Other Info',             # other relevant info
+                             ]
                 thewriter = csv.DictWriter(f, fieldnames=fieldnames)
 #                currentDateTime = datetime.datetime.now()
                 currentDateTime = self.scrape_start_date
 
-                for list in lists:
-                    hotel = list.find('div', class_='fcab3ed991 a23c043802').text
-                    room_type = list.find('span', class_='df597226dd').text
-                    room_rate = list.find('span', class_='fcab3ed991 bd73d13072').text
+                for _list in lists:
+                    property_name = _list.find('div', class_='fcab3ed991 a23c043802').text
+                    room_type = _list.find('span', class_='df597226dd').text
+                    room_rate = _list.find('span', class_='fcab3ed991 bd73d13072').text
+                    review_score = _list.find('div', class_='b5cd09854e d10a6220b4').text
+                    property_location = _list.find('div', class_='a1fbd102d9').text
+                    other_info = _list.find('div', class_='d22a7c133b').text
 
-                    thewriter.writerow({'Date': currentDateTime, 'Hotel':hotel, 'Room Type':room_type , 'Rate': room_rate})
+                    thewriter.writerow({'Checkin Date':checkin_date,
+                                        'Property Name':property_name,
+                                        'Room Type' :room_type,
+                                        'Room Rate' : room_rate,
+                                        'Review Score': review_score,
+                                        'Property Location' : property_location,
+                                        'Other Info': other_info,
+                                       })
 
         except Exception as err:
             _s_fn_id = "Class <WebScraper> Function <scrape_data_to_csv>"
