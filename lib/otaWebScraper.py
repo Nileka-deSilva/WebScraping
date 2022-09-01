@@ -38,15 +38,12 @@ class OTAWebScraper():
         self.scrape_start_date = date.today()
         self.scrape_end_date = self.scrape_start_date + timedelta(days=1)
         self.page_offset = 10
-        self.page_upper_limit = 150
+        self.page_upper_limit = 550
         self.checkout_offset = 1
         
-        self.locations = ["Las Vegas",
-                          "New York",
-                          "Orlando",
-#                          "Boston, USA",
-#                          "Colombo, Sri Lanka",
-                         ]
+        self.destination_ids = ["20079110", "20088325",
+                          "20061717",
+                          "20023488","20050264", "20030916", "20033173", "20135442", "20131185", "20090971", "20023181", "20014181", "20015732", "20021296"]
 
         return None
 
@@ -217,7 +214,7 @@ class OTAWebScraper():
             return: list with the set of urls (scrape_url_list)
             author: nuwan.waidyanatha@rezgateway.com
 
-            TODO: the nested looping code to add the location, checkin, checkout, page is dirty
+            TODO: the nested looping code to add the destination_id, checkin, checkout, page is dirty
                     Need a better method rather than nested loop because not all OTAs will consist
                     of the same input parameters
     '''
@@ -267,8 +264,8 @@ class OTAWebScraper():
                         raise ValueError("Invalid url skip to next")
 
                     ''' build the dictionary to replace the values in the url place holder '''
-                    for location in self.locations:
-                        _inert_param_dict['location'] = location
+                    for destination_id in self.destination_ids:
+                        _inert_param_dict['destination_id'] = destination_id
                         if 'checkin' in ota['inputs']:
                             for day_count in range(0,(self.scrape_end_date - self.scrape_start_date).days):
                                 _inert_param_dict['checkin'] = self.scrape_start_date + timedelta(days=day_count)
@@ -285,7 +282,7 @@ class OTAWebScraper():
 #                                        scrape_url_list.append(_parameterized_url)
                                         _scrape_url_dict = {}     # init otherwise will overwrite the list
                                         _scrape_url_dict['ota']=ota['ota']
-                                        _scrape_url_dict['location']=location
+                                        _scrape_url_dict['destination_id']=destination_id
                                         _scrape_url_dict['checkin']=_inert_param_dict['checkin']
                                         _scrape_url_dict['page_offset']=page_offset
                                         _scrape_url_dict['url']=_parameterized_url
