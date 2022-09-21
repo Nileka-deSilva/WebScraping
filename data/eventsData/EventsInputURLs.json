@@ -1,0 +1,18 @@
+{
+    "kayak.com": [{
+        "url": "https://10times.com/{destinationID}-us?month={month}",
+        "inputs": ["destinationID", "month"],
+        "outputs": [
+            {"variable": "content_block", "tag": "tr", "code": "row py-2 mx-0 mb-3 bg-white deep-shadow event-card"},
+            {"variable": "event", "tag": "span", "code": "d-block"},
+            {"variable": "eventDate", "tag": "td", "code": "col-12 text-dark"},
+            {"variable": "venue", "tag": "div", "code": "small fw-500 venue"},
+            {"variable": "labels", "tag": "td", "code": "col-12 small text-muted mb-2},
+            {"variable": "interested", "tag": "div", "code": "small text-center rounded-3 bg-light"}
+        ],
+        "destinationID": "cityCodesEvents.csv"
+    }]
+}
+
+#{month} - needs to be defined as "january", "february", "march"...
+# Website only provides event info for 12 months, so if we enter {month}= "august" it will show us August 2023 events (since august 2022 is over)
