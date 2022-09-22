@@ -7,7 +7,7 @@
             {"variable": "event", "tag": "span", "code": "d-block"},
             {"variable": "eventDate", "tag": "td", "code": "col-12 text-dark"},
             {"variable": "venue", "tag": "div", "code": "small fw-500 venue"},
-            {"variable": "labels", "tag": "td", "code": "col-12 small text-muted mb-2},
+            {"variable": "labels", "tag": "td", "code": "col-12 small text-muted mb-2"},
             {"variable": "interested", "tag": "div", "code": "small text-center rounded-3 bg-light"}
         ],
         "destinationID": "cityCodesEvents.csv"
